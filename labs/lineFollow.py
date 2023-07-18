@@ -21,6 +21,7 @@ BLUE = ((90,50,50), (110,255,255))
 RED = ((170,100,100), (10,255,255))
 GREEN = ((50,50,50), (80,255,255))
 ORANGE = ((0,254,254), (1,255,255))
+TEST = PLSWORK
 
 # color_queue:   holds tuples of the current color, + next,
 #                will be incremented when next is found
