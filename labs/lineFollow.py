@@ -21,6 +21,7 @@ BLUE = ((90,50,50), (110,255,255))
 RED = ((170,100,100), (10,255,255))
 GREEN = ((50,50,50), (80,255,255))
 ORANGE = ((0,254,254), (1,255,255))
+PURPLE = ((140, 50, 50), (160, 255, 255))
 
 # color_queue:   holds tuples of the current color, + next,
 #                will be incremented when next is found
@@ -30,6 +31,7 @@ color_queue_timer = 0
 
 MIN_CONTOUR_AREA = 30
 LINE_FOLLOW_IMG_CROP = ((360,0), (480, 640))
+CONE_STOP_IMG_CROP = ((0,0), (480, 640))
 
 
 DEFAULT_SAFE_SPEED = 0.15
@@ -38,8 +40,9 @@ LINE_FOLLOWING_SPEED = 1.0
 # States class:
 class State(IntEnum):
     line_follow = 0
-    depth_camera_search = 1
-    cone_park = 2
+    line_follow_final = 1
+    cone_follow = 2
+    cone_park = 3
 
 # Initialize current_state
 curr_state = State.line_follow
@@ -49,13 +52,23 @@ def start():
     rc.drive.set_speed_angle(0, 0)
 
 def update():
+    speed, angle = 0, 0
+
     # State Machine
     if(curr_state == State.line_follow):
         speed, angle = line_follow()
-    elif(curr_state == State.depth_camera_search):
-        pass
-    elif(curr_state == State.cone_park):
-        pass
+        if check_depth_color(): 
+            curr_state = State.line_follow_cone
+    elif(curr_state == State.line_follow_final):
+        speed, angle = line_follow()
+        if check_depth_color():
+            curr_state = State.line_follow_cone
+    elif(curr_state == State.line_follow_cone):
+        center, speed, angle = coneFollow()
+        if searchForDepth(switchBetweenColorDepth(center)):
+            curr_state = State.stop
+    elif(curr_state == State.stop):
+        speed, angle = 0, 0
     else:
         speed, angle = 0, 0
 
@@ -154,6 +167,38 @@ def show_image(image: NDArray) -> None:
     """
     img = rc.camera.get_color_image()
     plt.show(img)
+def switchBetweenColorDepth(center):
+    newCoords = (int(center[0]/2), int(center[1]/2))
+    return newCoords
+    #320,240
+    #160,120
+
+def searchForDepth(center):
+    #creates the depth image
+    depth_image = rc.camera.get_depth_image()
+
+    #gets the distance of the center pixel within the depth image (we will assume it is off a cone)
+    center_distance = depth_image[center[0]][center[1]]
+
+    #checks if the center distance is under 30
+    if center_distance < 4:
+        return True
+    else:
+        return False
+    
+    '''
+    Gets the distance of the center pixel, and if it is under an x amount of cm then it is set to true
+    '''
+def check_depth_color():
+    center, area = findContoursLine(PURPLE, CONE_STOP_IMG_CROP)
+
+    if area is not None and area > 3000:
+        return True
+
+    '''
+    Check the color of the center pixel of the image, once the pixel is seen that it is within the range (HSV)
+    '''
+    
     
 # DO NOT MODIFY: Register start and update and begin execution
 if __name__ == "__main__":
