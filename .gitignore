@@ -4,3 +4,6 @@
 library/*
 .vscode/*
 scripts/*
+LICENSE
+README.md
+docs/*

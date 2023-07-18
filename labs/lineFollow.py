@@ -57,6 +57,8 @@ def update():
     # State Machine
     if(curr_state == State.line_follow):
         speed, angle = line_follow()
+        if color_queue_index == len(color_queue) - 1:
+            curr_state = State.line_follow_final
         if check_depth_color(): 
             curr_state = State.line_follow_cone
     elif(curr_state == State.line_follow_final):
