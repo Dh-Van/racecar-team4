@@ -18,20 +18,19 @@ rc = racecar_core.create_racecar()
 BLUE = ((90,50,50), (110,255,255))
 RED = ((160,50,50), (10,255,255))
 GREEN = ((50,50,50), (80,255,255))
-ORANGE = ((0,254,254), (1,255,255))
+ORANGE = ((10,50,50), (10,255,255))
 
 # color_queue:   holds tuples of the current color, + next,
 #                will be incremented when next is found
-color_queue = ((BLUE, ORANGE), (RED, GREEN), (GREEN, BLUE), (BLUE, ORANGE))
+color_queue = ((BLUE, RED), (RED, BLUE), (BLUE, GREEN), (GREEN, ORANGE))
 color_queue_index = 0
 color_queue_timer = 0
 
 MIN_CONTOUR_AREA = 30
-LINE_FOLLOW_IMG_CROP = ((170,0), (240, 340))
-
+LINE_FOLLOW_IMG_CROP = ((360,0), (420, 680))
 
 DEFAULT_SAFE_SPEED = 0.15
-LINE_FOLLOWING_SPEED = 0.5
+LINE_FOLLOWING_SPEED = 0.25
 
 # States class:
 class State(IntEnum):
@@ -132,8 +131,8 @@ takes in desired contour center x-value (in pixels),
 and outputs new turn angle to correct error
 '''
 def get_controller_output(center):
-    kP = 0.5
-    return clamp(kP * (((center * (2 / 340))) - 1), -1, 1)
+    kP = 7
+    return clamp(kP * (((center / 680) * 2) - 1), -1, 1)
 
 def clamp(num, min_value, max_value):
    return max(min(num, max_value), min_value)
@@ -143,8 +142,8 @@ def show_image(image: NDArray) -> None:
     """
     Displays a color image in the Jupyter Notebook.
     """
-    img = rc.camera.get_color_image()
-    plt.show(img)
+    plt.imshow(cv.cvtColor(image, cv.COLOR_BGR2RGB))
+    plt.show()
     
 # DO NOT MODIFY: Register start and update and begin execution
 if __name__ == "__main__":
