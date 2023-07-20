@@ -1,10 +1,34 @@
+# Generic Constants:
+WIDTH = 640
+HEIGHT = 320
+DEFAULT_SAFE_SPEED = 0.15
+
+
 # HSV Constants:
 
 # region
 RED_CONE = ((170, 50, 50), (10, 255, 255))
 BLUE_CONE = ((80, 100, 100), (130, 255, 255))
+BLUE_LINE = ((90,70,70), (110,255,255))
+RED_LINE = ((170,100,100), (10,255,255))
+GREEN_LINE = ((40,50,50), (80,255,255))
+ORANGE_LINE = ((0,254,254), (1,255,255))
+YELLOW_LINE = ((10,50,50), (30,255,255))
 # endregion
 
+# Line Follow Constants:
+
+# region
+# LINE_FOLLOW_IMG_CROP = ((100,0), (240, 320))
+# LINE_STRAIGHT_IMG_CROP = ((120,120), (180,200))
+LINE_FOLLOW_IMG_CROP = ((350,0), (480, 640))
+LINE_STRAIGHT_IMG_CROP = ((280,250), (400,390))
+LINE_FOLLOWING_SPEED = 0.3
+LINE_STRAIGHT_SPEED = 0.6
+LINE_FOLLOW_kP = 4
+LINE_FOLLOW_kI = 0.00
+LINE_FOLLOW_kD = 0.00
+# endregion
 
 # Cone Slalom Constants:
 
@@ -17,3 +41,15 @@ CS_RED_CONE_OFFSET = 200
 CS_STRAIGHT = 2.6
 CS_TURN = 1.95
 # endregion
+
+# Cone Park HSV
+
+# region
+BLUE = ((90,50,50), (110,255,255))
+RED = ((170,100,100), (10,255,255))
+GREEN = ((50,50,50), (80,255,255))
+ORANGE = ((0,254,254), (1,255,255))
+PURPLE = ((120, 50, 50), (160, 255, 255))
+YELLOW = ((50, 50, 50), (70, 255, 255))
+# endregion
+

@@ -19,27 +19,50 @@ import racecar_core
 import racecar_utils as rc_utils
 #endregion
 
-# Global variables
-global current_state, last_state, slalom_timer
-
-rc = racecar_core.create_racecar()
+# States for state machine
 
 class States(IntEnum):
     Blue = -1
     Red = 1
     Turn = 2
+    Line_Follow = 3
 
+
+
+# Generic global variables
+global current_state, last_state
+
+current_state = States.Line_Follow
+last_state = None
+
+# Line Follow global variables
+global rc, color_queue_timer, color_queue_index, integral_sum, PID_timer, last_error
+
+color_queue = (
+    (constants.BLUE_LINE, constants.ORANGE_LINE), 
+    (constants.GREEN_LINE, constants.ORANGE_LINE), 
+    (constants.RED_LINE, constants.BLUE_LINE), 
+    (constants.BLUE_LINE, constants.ORANGE_LINE)
+)
+color_queue_index = 0
+color_queue_timer = 0
+
+integral_sum = 0.0
+PID_timer = 0.001
+last_error = 0.0
+
+# Cone Slalom global variables
+global slalom_timer
+
+slalom_timer = 0
+
+rc = racecar_core.create_racecar()
 
 """
 This function is run once every time the start button is pressed
 """
 def start():
-    global current_state, last_state, slalom_timer
     rc.drive.stop()
-
-    current_state = States.Red
-    last_state = None
-    slalom_timer = 0
 
     # Print start message
     print(">> Phase 1 Challenge: Cone Slaloming")
@@ -51,18 +74,67 @@ is pressed
 def update():
     # TODO: Slalom between red and blue cones.  The car should pass to the right of
     # each red cone and the left of each blue cone.
-    global slalom_timer
+    global slalom_timer, PID_timer
     speed, angle  = 0, 0
+
     if(current_state == States.Blue):
         speed, angle = cone_search(States.Blue, constants.CS_BLUE_CONE_OFFSET, constants.BLUE_CONE)
-    elif(current_state == States.Turn):
-        speed, angle = turn()
     elif(current_state == States.Red):
         speed, angle = cone_search(States.Red, constants.CS_RED_CONE_OFFSET, constants.RED_CONE)
+    elif(current_state == States.Turn):
+        speed, angle = turn()
+    elif(current_state == States.Line_Follow):
+        speed, angle = line_follow()
 
+    PID_timer += rc.get_delta_time()
     slalom_timer += rc.get_delta_time()
     rc.drive.set_speed_angle(speed, angle)
 
+# Line Follow functions
+
+def line_follow():
+    global color_queue_index, color_queue_timer
+    image = rc.camera.get_color_image()
+    cropped_image = rc_utils.crop(image, constants.LINE_FOLLOW_IMG_CROP[0], constants.LINE_FOLLOW_IMG_CROP[1])
+
+    # Initial speed and angle values will be set to safe value
+    speed, angle = constants.DEFAULT_SAFE_SPEED, 0
+
+    # Gets info about the current color contour and the next color contour in the color queue
+    current_contour_center, current_contour_area = find_contours(color_queue[color_queue_index][0], cropped_image, False)
+    next_contour_center, next_contour_area = find_contours(color_queue[color_queue_index][1], cropped_image, False)
+
+    # Returns the safe values when the current contour is none
+    if(current_contour_center is None):
+        return speed, angle
+
+    # If the timer is not 1 and the next contour is found
+    if color_queue_timer <= 0 and next_contour_area > 1000:
+        print("next found")
+        # The color_queue_index index is incremented so that we can look for the next color pair
+        color_queue_index += 1
+        # The timer is set 1, cooldown timer so that the camera doesnt immediatley switch colors
+        color_queue_timer = 2
+        # The current values are set to the next values
+        current_contour_center, current_contour_area = next_contour_center, next_contour_area
+
+    # The angle is returned based off of the x value of the current contour center
+    angle = get_controller_output(current_contour_center[1])
+
+    # Decrements the color_queue_timer by the delta time so that we know when 1 second has passed
+    if color_queue_timer > 0:
+        color_queue_timer -= rc.get_delta_time()
+    faster_crop = rc_utils.crop(image, constants.LINE_STRAIGHT_IMG_CROP[0], constants.LINE_STRAIGHT_IMG_CROP[1])
+    # Checks if car is on long straight-away, and returns faster speed
+    long_contour_center, long_contour_area = find_contours(color_queue[color_queue_index][0], cropped_image, False)
+    if long_contour_area > 1000:
+        return constants.LINE_STRAIGHT_SPEED, angle
+    # The speed is a constant set above, and the angle is returned from the controller
+    return constants.LINE_FOLLOWING_SPEED, angle
+
+# Cone Slalom functions
+
+# region
 def cone_search(state, offset, color):
     global current_state, last_state, slalom_timer
 
@@ -134,6 +206,7 @@ def find_cone():
 
     return countour_center, contour_area, state
 
+# endregion
 
 def find_contours(color, image, show):    
     # When the image is not found: None, None is returned
@@ -168,8 +241,83 @@ def find_contours(color, image, show):
 def clamp(num, min_value, max_value):
    return max(min(num, max_value), min_value)
 
-# DO NOT MODIFY: Register start and update and begin execution
+def get_controller_output(center):
+    global integral_sum, last_error, PID_timer
+    # ranges:
+    # center:  0 - 320
+    # error: -160 - +160
+    # output_rc: -1 - 1
+    error = center - (constants.WIDTH / 2)
+    integral_sum += PID_timer * error
+    slope = error - last_error / PID_timer    
+    output_px = (constants.LINE_FOLLOW_kP * (error) + (constants.LINE_FOLLOW_kI * integral_sum) + (constants.LINE_FOLLOW_kD * slope))
 
+    output_rc = output_px / (constants.WIDTH / 2)
+    last_error, PID_timer = error, 0
+    return clamp(output_rc, -1, 1)
+
+
+def switch_between_color_depth(center):
+    newCoords = (int(center[0]), int(center[1]))
+    return newCoords
+    # 320,240
+    # 160,120
+
+
+def search_for_depth(center):
+    # creates the depth image
+    depth_image = rc.camera.get_depth_image()
+
+    # gets the distance of the center pixel within the depth image (we will assume it is off a cone)
+    center_distance = depth_image[center[0]][center[1]]
+    print(center_distance)
+    # checks if the center distance is under 30
+    if center_distance < 20:
+        return True
+    else:
+        return False
+
+    '''
+    Gets the distance of the center pixel, and if it is under an x amount of cm then it is set to true
+    '''
+
+
+def check_cone_contour(color, crop, threshold):
+    center, area = find_contours(color, crop)
+
+    if area is not None and area > threshold:
+        print("FOR ONCE")
+        return True
+    else:
+        print("failed")
+
+    '''
+    Check the color of the center pixel of the image, once the pixel is seen that it is within the range (HSV)
+    '''
+
+def final_follow(COLOR,CROP):
+
+    speed, angle = DEFAULT_SAFE_SPEED, 0
+
+    contour_center, contour_area = find_contours(COLOR, CROP)
+
+    if (contour_center is None):
+        print("dead")
+        return speed, angle
+    print("COLOR FOUND")
+    angle = get_controller_output(contour_center[1])
+
+    return DEFAULT_SAFE_SPEED, angle
+
+def center_finder(COLOR,CROP):
+    contour_center, contour_area = find_contours(COLOR, CROP)
+
+    if (contour_center is None):
+        return 0
+
+    return contour_center
+
+# DO NOT MODIFY: Register start and update and begin execution
 if __name__ == "__main__":
     rc.set_start_update(start, update, None)
     rc.go()
