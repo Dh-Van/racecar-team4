@@ -37,11 +37,12 @@ color_queue_timer = 0
 
 MIN_CONTOUR_AREA = 30
 LINE_FOLLOW_IMG_CROP = ((100,0), (240, 320))
-LINE_STRAIGHT_IMG_CROP = ((0,0), (10,10))
+LINE_STRAIGHT_IMG_CROP = ((120,120), (180,200))
 
 
 DEFAULT_SAFE_SPEED = 0.15
 LINE_FOLLOWING_SPEED = 0.15
+LINE_STRAIGHT_SPEED = 0.2
 
 # States class:
 class State(IntEnum):
@@ -107,7 +108,9 @@ def line_follow():
 
     # Checks if car is on long straight-away, and returns faster speed
     long_contour_center, long_contour_area = findContoursLine(color_queue[color_queue_index][0], LINE_STRAIGHT_IMG_CROP)
-
+    if long_contour_area > 1000:
+        print("ZOOM")
+        return LINE_STRAIGHT_SPEED, angle
     # The speed is a constant set above, and the angle is returned from the controller
     return LINE_FOLLOWING_SPEED, angle
 
