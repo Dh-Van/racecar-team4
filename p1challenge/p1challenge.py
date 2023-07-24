@@ -22,6 +22,7 @@ import racecar_utils as rc_utils
 # States for state machine
 
 class States(IntEnum):
+    Idle = -10
     Blue = -1
     Red = 1
     Turn = 2
@@ -30,17 +31,18 @@ class States(IntEnum):
 
 
 # Generic global variables
-global current_state, last_state
+global current_state, last_state, state_counter
 
 current_state = States.Line_Follow
 last_state = None
+state_counter = 0
 
 # Line Follow global variables
 global rc, color_queue_timer, color_queue_index, integral_sum, PID_timer, last_error
 
 color_queue = (
-    (constants.BLUE_LINE, constants.ORANGE_LINE), 
-    (constants.GREEN_LINE, constants.ORANGE_LINE), 
+    (constants.YELLOW_LINE, constants.BLUE_LINE), 
+    (constants.BLUE_LINE, constants.YELLOW_LINE), 
     (constants.RED_LINE, constants.BLUE_LINE), 
     (constants.BLUE_LINE, constants.ORANGE_LINE)
 )
@@ -74,13 +76,19 @@ is pressed
 def update():
     # TODO: Slalom between red and blue cones.  The car should pass to the right of
     # each red cone and the left of each blue cone.
-    global slalom_timer, PID_timer
+    global slalom_timer, PID_timer, current_state, color_queue, color_queue_index, state_counter
     speed, angle  = 0, 0
-
+    
+    if(color_queue[color_queue_index][0] == constants.RED_LINE):
+        current_state = States.Red
+        slalom_timer = 0
+    
     if(current_state == States.Blue):
+        state_counter += 1
         speed, angle = cone_search(States.Blue, constants.CS_BLUE_CONE_OFFSET, constants.BLUE_CONE)
     elif(current_state == States.Red):
         speed, angle = cone_search(States.Red, constants.CS_RED_CONE_OFFSET, constants.RED_CONE)
+#         print(angle)
     elif(current_state == States.Turn):
         speed, angle = turn()
     elif(current_state == States.Line_Follow):
@@ -101,15 +109,15 @@ def line_follow():
     speed, angle = constants.DEFAULT_SAFE_SPEED, 0
 
     # Gets info about the current color contour and the next color contour in the color queue
-    current_contour_center, current_contour_area = find_contours(color_queue[color_queue_index][0], cropped_image, False)
-    next_contour_center, next_contour_area = find_contours(color_queue[color_queue_index][1], cropped_image, False)
+    current_contour_center, current_contour_area = find_contours(color_queue[color_queue_index][0], cropped_image, True)
+    next_contour_center, next_contour_area = find_contours(color_queue[color_queue_index][1], cropped_image, True)
 
     # Returns the safe values when the current contour is none
     if(current_contour_center is None):
         return speed, angle
 
     # If the timer is not 1 and the next contour is found
-    if color_queue_timer <= 0 and next_contour_area > 1000:
+    if color_queue_timer <= 0 and next_contour_area > 2000:
         print("next found")
         # The color_queue_index index is incremented so that we can look for the next color pair
         color_queue_index += 1
@@ -140,18 +148,18 @@ def cone_search(state, offset, color):
 
     # Gets contour center and area from the image
     image = rc.camera.get_color_image()
-    cropped_image = rc_utils.crop(image, constants.CS_IMG_CROP[0], constants.CS_IMG_CROP[1])
+    cropped_image = rc_utils.crop(image, constants.CS2_IMG_CROP[0], constants.CS2_IMG_CROP[1])
     contour_center, contour_area = find_contours(color, cropped_image, False)
 
     # Goes straight at the cone center + offset for 2.5 seconds
-    if(slalom_timer <= constants.CS_STRAIGHT and contour_center is not None):
+    if(contour_center is not None):
         angle_px = contour_center[1] + offset
         angle_rc = angle_px * (2 / 360) - 1
         return constants.CS_SPEED, clamp(angle_rc, -1, 1)
 
-    # If it can still see the cone and 2.5 seconds is up, is keeps going straight
-    if(contour_area >= 0):
-        return constants.CS_SPEED, 0
+#     # If it can still see the cone and 2.5 seconds is up, is keeps going straight
+#     if(contour_area >= 0):
+#         return constants.CS_SPEED, 0
     
     # If it can't see the cone and 2.5 seconds is up then it switches to the turn state
     # Sets timer to 0 so that hte same timer can be used for the turn() function
@@ -170,17 +178,18 @@ def turn():
     contour_center, contour_area, next_state = find_cone()
     # Sets the angle to be negative of the last state value. The last_state int value is representative
     # of the side it should turn, so the negative value will let us turn around the cone
-    angle = -last_state
+    angle = -last_state * 0.75
 
     # First goes straight for 1.5 seconds. This is to account for the cone width. Since the fuction is called
     # right after the cone is not able to be seen, this lets us make sure that we won't hit the cone when we turn
-    if(slalom_timer < 1.5):
+    if(slalom_timer < constants.CS_TURN_STRAIGHT):
         return constants.CS_SPEED, 0
     
     # Once 
-    if((contour_area == -1 or contour_center == None) or slalom_timer < constants.CS_TURN):
+    if((contour_area == -1 or contour_center == None)):
         return constants.CS_SPEED, angle
 
+    print("turn contour found")
     slalom_timer = 0
     last_state = States.Turn
     current_state = next_state
@@ -191,8 +200,29 @@ def find_cone():
     image = rc.camera.get_color_image()
     cropped_image = rc_utils.crop(image, constants.CS_IMG_CROP[0], constants.CS_IMG_CROP[1])
 
-    red_contour_center, red_contour_area = find_contours(constants.RED_CONE, cropped_image, True)
-    blue_contour_center, blue_contour_area = find_contours(constants.BLUE_CONE, cropped_image, True)
+    red_contour_center, red_contour_area = find_contours(constants.RED_CONE, cropped_image, False)
+    blue_contour_center, blue_contour_area = find_contours(constants.BLUE_CONE, cropped_image, False)
+    countour_center, contour_area, state = None, -1, States.Turn
+
+    if red_contour_area > blue_contour_area:
+        countour_center = red_contour_center
+        contour_area = red_contour_area
+        state = States.Red
+    elif(blue_contour_area >= red_contour_area):
+        countour_center = blue_contour_center
+        contour_area = blue_contour_area
+        state = States.Blue
+
+    return countour_center, contour_area, state
+
+# endregion
+
+def find_cone():
+    image = rc.camera.get_color_image()
+    cropped_image = rc_utils.crop(image, constants.CS_IMG_CROP[0], constants.CS_IMG_CROP[1])
+
+    red_contour_center, red_contour_area = find_contours(constants.RED_CONE, cropped_image, False)
+    blue_contour_center, blue_contour_area = find_contours(constants.BLUE_CONE, cropped_image, False)
     countour_center, contour_area, state = None, -1, States.Turn
 
     if red_contour_area > blue_contour_area:
@@ -297,7 +327,7 @@ def check_cone_contour(color, crop, threshold):
 
 def final_follow(COLOR,CROP):
 
-    speed, angle = DEFAULT_SAFE_SPEED, 0
+    speed, angle = constants.DEFAULT_SAFE_SPEED, 0
 
     contour_center, contour_area = find_contours(COLOR, CROP)
 
@@ -307,7 +337,7 @@ def final_follow(COLOR,CROP):
     print("COLOR FOUND")
     angle = get_controller_output(contour_center[1])
 
-    return DEFAULT_SAFE_SPEED, angle
+    return constants.DEFAULT_SAFE_SPEED, angle
 
 def center_finder(COLOR,CROP):
     contour_center, contour_area = find_contours(COLOR, CROP)
