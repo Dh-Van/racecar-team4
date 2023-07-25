@@ -17,9 +17,9 @@ import racecar_utils as rc_utils
 
 # Global variables
 color_queue = (
-    (constants.BLUE_LINE_SIM, constants.RED_LINE), 
-    (constants.BLUE_LINE, constants.YELLOW_LINE), 
-    (constants.RED_LINE, constants.BLUE_LINE), 
+    (constants.BLUE_LINE, constants.GREEN_LINE), 
+    (constants.GREEN_LINE, constants.RED_LINE), 
+    (constants.RED_LINE, constants.BLUE_LINE),
     (constants.BLUE_LINE, constants.ORANGE_LINE)
 )
 rc = racecar_core.create_racecar()
