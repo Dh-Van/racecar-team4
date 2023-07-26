@@ -1,9 +1,11 @@
 import sys, scipy, cv2
+from typing import List, Tuple
+from states import States
 import constants, math_utils, camera_utils
+
 sys.path.insert(0, "../../library")
 import racecar_core
 import racecar_utils as rc_utils
-import matplotlib.pyplot as plt
 
 
 class line_follow:
@@ -13,18 +15,39 @@ class line_follow:
     color_queue_timer, color_queue_index = 0, 0
     last_angle = 0
 
-    def __init__(self, racecar: racecar_core.Racecar, color_queue) -> None:
+    """
+    Initializes the line follower. Requires a racecar object and a list of color pairs
+    """
+    def __init__(self, racecar: racecar_core.Racecar, color_queue: List[tuple]) -> None:
         self.rc = racecar
         self.color_queue = color_queue
 
+    """
+    This function is run once every time the start button is pressed
+    """
     def start(self):
-        self.rc.display.create_window()
+        pass
 
-    def update(self):
+    """
+    After start() is run, this function is run every frame until the back button
+    is pressed
+    """
+    def update(self) -> States:
         speed, angle = self.line_follow()
         self.rc.drive.set_speed_angle(speed, angle)
+        if(self.color_queue_index >= len(self.color_queue) - 1):
+            return States.Stop
+        return States.Line_Follow
 
-    def line_follow(self):
+    """
+    Main line following function. This function uses the color queue passed in earlier
+    and changes color as soon as the area of the next color is above a certain value.
+    It also goes faster on straights and slower on turns to prevent tipping. It uses
+    a simple P controller with gains set in constants. If no image is found or the
+    contour color is wrong, then the car will go at a safe speed towards it's last
+    angle
+    """
+    def line_follow(self) -> Tuple[float, float]:
         image = self.rc.camera.get_color_image()
         cropped_image = rc_utils.crop(image, constants.LF_IMG_CROP[0], constants.LF_IMG_CROP[1])
 
@@ -32,20 +55,28 @@ class line_follow:
         speed, angle = constants.SAFE_SPEED, self.last_angle
 
         # Gets info about the current color contour and the next color contour in the color queue
-        current_contour, current_contour_center, current_contour_area = camera_utils.find_contours(self.color_queue[self.color_queue_index][0], cropped_image, 30)
-        next_contour, next_contour_center, next_contour_area = camera_utils.find_contours(self.color_queue[self.color_queue_index][1], cropped_image, 30)
+        current_contour, current_contour_center, current_contour_area = camera_utils.find_contour(
+            self.color_queue[self.color_queue_index][0], 
+            cropped_image, 
+            constants.LF_MIN_CONTOUR_AREA
+        )
+        next_contour, next_contour_center, next_contour_area = camera_utils.find_contour(
+            self.color_queue[self.color_queue_index][1], 
+            cropped_image, 
+            constants.LF_MIN_CONTOUR_AREA
+        )
 
-        # If the timer is not 1 and the next contour is found
+        # Changes to the next color pair in the color queue, since the second color has been found
         if self.color_queue_timer <= 0 and next_contour_area > 750:
             print("next found")
             # The color_queue_index index is incremented so that we can look for the next color pair
             self.color_queue_index += 1
             # The timer is set 1, cooldown timer so that the camera doesnt immediatley switch colors
-            self.color_queue_timer = 2
-            # The current values are set to the next values
+            self.color_queue_timer = 1
+            # The current values are set to the next values since the car is on the next color
             current_contour, current_contour_center, current_contour_area = next_contour, next_contour_center, next_contour_area
 
-        # Returns the safe values when the current contour is none
+        # Returns the safe values if the current contour is none
         if(current_contour_center is None):
             return speed, self.last_angle
 
@@ -56,34 +87,30 @@ class line_follow:
         if self.color_queue_timer > 0:
             self.color_queue_timer -= self.rc.get_delta_time()
             
+        # Cropped image that returns the line much further in front of the race car
         faster_crop = rc_utils.crop(image, constants.LF_STRAIGHT_IMG_CROP[0], constants.LF_STRAIGHT_IMG_CROP[1])
-        # plt.imshow(cv2.cvtColor(faster_crop, cv2.COLOR_BGR2RGB))
-        # plt.show()
-        self.rc.display.show_color_image(faster_crop)
+
         # Checks if car is on long straight-away, and returns faster speed
-        long_contour, long_contour_center, long_contour_area = camera_utils.find_contours(self.color_queue[self.color_queue_index][0], faster_crop, False)
-        if long_contour_area > 3500:
-            if(long_contour is not None):
-                rc_utils.draw_contour(faster_crop, current_contour)
-                self.rc.display.show_color_image(faster_crop)
+        long_contour, long_contour_center, long_contour_area = camera_utils.find_contour(
+            self.color_queue[self.color_queue_index][0], 
+            faster_crop, 
+            constants.LF_MIN_FAST_AREA
+        )
+
+        if long_contour is not None:
             return constants.LF_STRAIGHT_SPEED, angle
-        # The speed is a constant set above, and the angle is returned from the controller
-#         print("not zoom")
+        
+        # The speed is a constant set in the constants file, and the angle is returned from the controller
         self.last_angle = angle
         return constants.LF_SPEED, angle
 
-
-
-    def get_controller_output(self, center):
+    """
+    Function to get the output of a simple P controller. Requires a paramater that is the current
+    position of the center of the contour. It uses the constants.WIDTH variable to determine the
+    center of the screen. Outputs an angle value between [-1, 1] to be used to steer the racecar
+    """
+    def get_controller_output(self, center: float) -> float:
         error = center - (constants.WIDTH / 2)
-        # curr_time = self.rc.get_delta_time()
-        # slope = (error - self.error_list[-1]) / (curr_time - self.time_list[-1])
-        # integral_sum = scipy.integrate.simps(self.error_list, self.time_list)
-        # output_px = (constants.LINE_FOLLOW_kP * (error) + (constants.LINE_FOLLOW_kI * integral_sum) + (constants.LINE_FOLLOW_kD * slope))
         output_px = constants.LF_kP * error
-
         output_rc = output_px / (constants.WIDTH / 2)
-
-        # self.error_list.append(error)
-        # self.time_list.append(curr_time)
         return math_utils.clamp(output_rc, -1, 1)

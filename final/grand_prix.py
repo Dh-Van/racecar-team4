@@ -6,10 +6,10 @@ Fall 2020
 Final Challenge - Grand Prix
 """
 # Imports
-import sys, cv2 as cv
-import numpy as np
-import scipy
-import line_following, constants
+import sys
+from line_following import line_follow
+from states import States
+import constants
 
 sys.path.insert(0, "../../library")
 import racecar_core
@@ -20,32 +20,44 @@ color_queue = (
     (constants.BLUE_LINE, constants.GREEN_LINE), 
     (constants.GREEN_LINE, constants.RED_LINE), 
     (constants.RED_LINE, constants.BLUE_LINE),
-    (constants.BLUE_LINE, constants.ORANGE_LINE)
+    (constants.BLUE_LINE, constants.BLUE_LINE),
+    (constants.HSV_NOTHING, constants.HSV_NOTHING)
 )
+
+global current_state, last_state
+current_state, last_state = States.Stop, States.Stop
+
 rc = racecar_core.create_racecar()
-lf = line_following.line_follow(rc, color_queue)
+
+line_follower = line_follow(rc, color_queue)
 
 """
 This function is run once every time the start button is pressed
 """
 def start():
+    global current_state
     # Have the car begin at a stop
     rc.drive.stop()
 
-    # Print start message
-    print(">> Final Challenge - Grand Prix")
+    current_state = States.Line_Follow
 
     # Feature Initialization
-    lf.start()
+    line_follower.start()
+
+    # Print start message
+    print(">> Final Challenge - Grand Prix")
 
 """
 After start() is run, this function is run every frame until the back button
 is pressed
 """
 def update():
-    # Feature Updates
-    lf.update()
-    # vc.set_velocity_angle(0.8, 0)
+    global current_state
+    if(current_state == States.Stop):
+        rc.drive.stop()
+    if(current_state == States.Line_Follow):
+        current_state = line_follower.update()
+    
 """
 DO NOT MODIFY: Register start and update and begin execution
 """

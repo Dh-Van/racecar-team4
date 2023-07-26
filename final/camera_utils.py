@@ -1,10 +1,17 @@
 import sys
-sys.path.insert(0, "../../library")
-import racecar_core
-import racecar_utils as rc_utils
-import constants
+from typing import List, Tuple
+from nptyping import NDArray
 
-def find_contours(color, image, min_contour):    
+sys.path.insert(0, "../../library")
+import racecar_utils as rc_utils
+
+"""
+Returns the largest contour in the given image, that matches the given color range.
+minimum area size is not required, will be set by default to 30
+"""
+def find_contour(
+        color: List[tuple], image: NDArray, min_area = 30
+    ) -> Tuple[NDArray, Tuple[int, int], float]:
     # When the image is not found: None, None is returned
     if image is None:
         return None, None, None
@@ -13,7 +20,7 @@ def find_contours(color, image, min_contour):
     list_contours = rc_utils.find_contours(image, color[0], color[1])
 
     # Gets the largest contour
-    contour = rc_utils.get_largest_contour(list_contours, 100)
+    contour = rc_utils.get_largest_contour(list_contours, min_area)
 
     # If no contour was found: None, None is returned
     if(contour is None):
