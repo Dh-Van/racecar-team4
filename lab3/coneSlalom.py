@@ -19,11 +19,11 @@ global rc
 rc = racecar_core.create_racecar()
 
 # HSV Values
-BLUE = ((90,70,70), (110,255,255))
-RED = ((170,100,100), (10,255,255))
+BLUE = ((131, 55, 17), (169, 188, 255))
+RED = ((175, 100, 100), (19, 255, 255))
 
-WIDTH = 640
-HEIGHT = 480
+WIDTH = 320
+HEIGHT = 240
 
 
 MIN_CONTOUR_AREA = 1
@@ -61,6 +61,7 @@ Main function that runs when cone slalom is entered.
 Runs once for each cone, with the color determining direction or bool Right.
 Drives around the cone and changes the state according to which color the next one is.
 '''
+
 def Slalom(colors, turn = 1):
     global cone_state, curr_state
 
@@ -68,12 +69,12 @@ def Slalom(colors, turn = 1):
     if cone_state == ConeState.approach:
         center = findCone(colors[1])
         if center == None:
-            rc.drive.set_speed_angle(0.5, 0)
+            rc.drive.set_speed_angle(0.15, 0)
         else:
-            rc.drive.set_speed_angle(0.5, get_controller_output(center[1]))
+            rc.drive.set_speed_angle(0.15, get_controller_output(center[1]))
         # When car reaches a given distance from cone (LIDAR) -> Turn wheels right + drive straight
         d = LidarCone((680, 40))[1]
-        print(d)
+        # print(d)
         if d <= 90 and d > 0:
             print('avoid')
             cone_state = ConeState.avoid
@@ -81,14 +82,14 @@ def Slalom(colors, turn = 1):
     # -> Turn wheels + avoid cone
     if cone_state == ConeState.avoid:
         if turn == -1:
-            rc.drive.set_speed_angle(0.3, 0.35 * turn)
+            rc.drive.set_speed_angle(0.13, 0.35 * turn)
             # When cone reaches ~90° from car (LIDAR) -> Turn back to the left
             d = LidarCone((100, 180))[1]
             if d <= 50 and d > 0:
                 print('turn back')
                 cone_state = ConeState.turnBack
         else:
-            rc.drive.set_speed_angle(0.3, 0.35 * turn)
+            rc.drive.set_speed_angle(0.13, 0.35 * turn)
             # When cone reaches ~90° from car (LIDAR) -> Turn back to the right
             d = LidarCone((520, 600))[1]
             if d <= 50 and d > 0:
@@ -97,7 +98,7 @@ def Slalom(colors, turn = 1):
     # -> Turn back to the center
 
     if cone_state == ConeState.turnBack:
-        rc.drive.set_speed_angle(0.3, 1 * turn * -1)
+        rc.drive.set_speed_angle(0.13, 1 * turn * -1)
         # When car is between cones (LIDAR) -> Drive towards next cone
         front = LidarCone((640, 120))
         back_angle = int(front[0] + 360) % 720
@@ -107,7 +108,7 @@ def Slalom(colors, turn = 1):
                 print('align')
                 print(front[0], back[0])
                 cone_state = ConeState.align
-                rc.drive.set_speed_angle(0.3, 1 * turn)
+                rc.drive.set_speed_angle(0.13, 1 * turn)
 
     # -> Drive towards next cone
     if cone_state == ConeState.align:
@@ -115,7 +116,7 @@ def Slalom(colors, turn = 1):
         if center == None:
             pass
         else:
-            rc.drive.set_speed_angle(0.3, get_controller_output(center[1]))
+            rc.drive.set_speed_angle(0.13, get_controller_output(center[1]))
         # When car reaches a given distance from cone (LIDAR) -> Turn wheels right + drive straight
             d = LidarCone((680, 40))[1]
             if d <= 200 and d > 0:
@@ -167,7 +168,7 @@ def findCone(color):
         print("No Image")
         return None
     
-    cropped_image = rc_utils.crop(image, (200, 0), (480, 640))
+    cropped_image = rc_utils.crop(image, (100, 0), (240, 320))
     # Find all contours of given color
     list_contours = rc_utils.find_contours(cropped_image, color[0], color[1])
 
