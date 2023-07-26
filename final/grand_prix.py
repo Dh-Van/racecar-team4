@@ -7,11 +7,14 @@ Final Challenge - Grand Prix
 """
 # Imports
 import sys
+sys.path.insert(0, "../../library")
+sys.path.insert(1, "features")
+sys.path.insert(2, "utils")
+
+
 from line_following import line_follow
 from states import States
 import constants
-
-sys.path.insert(0, "../../library")
 import racecar_core
 import racecar_utils as rc_utils
 

@@ -1,9 +1,9 @@
 import sys, scipy, cv2
+sys.path.insert(0, "../../../library")
+sys.path.insert(0, "..utils")
 from typing import List, Tuple
-from states import States
 import constants, math_utils, camera_utils
-
-sys.path.insert(0, "../../library")
+from states import States
 import racecar_core
 import racecar_utils as rc_utils
 

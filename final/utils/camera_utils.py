@@ -2,7 +2,7 @@ import sys
 from typing import List, Tuple
 from nptyping import NDArray
 
-sys.path.insert(0, "../../library")
+sys.path.insert(0, "../../../library")
 import racecar_utils as rc_utils
 
 """
