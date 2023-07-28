@@ -37,7 +37,7 @@ def find_contour(
 """
 Returns the output in the order of the input of windows
 """
-def get_lidar_distances(scan, windows: List[Tuple(int, int)]):
+def get_lidar_distances(scan, windows):
     output = []
     for window in windows:
         __, dist = rc_utils.get_lidar_closest_point(scan, window)

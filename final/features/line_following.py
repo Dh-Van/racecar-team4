@@ -77,7 +77,7 @@ class line_follow:
             current_contour, current_contour_center, current_contour_area = next_contour, next_contour_center, next_contour_area
 
         # Returns the safe values if the current contour is none
-        if(current_contour_center is None):
+        if(current_contour_center is None and self.last_contour_center is not None):
             angle = self.get_controller_output(self.last_contour_center[1])
             print("not seen - angle: ", angle)
             return speed, angle

@@ -48,7 +48,7 @@ def start():
     # Have the car begin at a stop
     rc.drive.stop()
 
-    current_state = States.Stop
+    current_state = States.Line_Follow
 
     # Feature Initialization
     line_follower.start()

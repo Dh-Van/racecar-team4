@@ -14,7 +14,7 @@ class wall_follow:
     def __init__(self, racecar: racecar_core.Racecar) -> None:
         self.rc = racecar
 
-    def start():
+    def start(self):
         pass
 
     def update(self):
