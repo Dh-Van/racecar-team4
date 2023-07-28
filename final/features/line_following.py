@@ -2,7 +2,7 @@ import sys, scipy, cv2
 sys.path.insert(0, "../../../library")
 sys.path.insert(0, "..utils")
 from typing import List, Tuple
-import constants, math_utils, camera_utils
+import constants, math_utils, sensor_utils
 from states import States
 import racecar_core
 import racecar_utils as rc_utils
@@ -13,7 +13,7 @@ class line_follow:
     rc = None
     color_queue = []
     color_queue_timer, color_queue_index = 0, 0
-    last_angle = 0
+    last_contour_center = None
 
     """
     Initializes the line follower. Requires a racecar object and a list of color pairs
@@ -52,15 +52,15 @@ class line_follow:
         cropped_image = rc_utils.crop(image, constants.LF_IMG_CROP[0], constants.LF_IMG_CROP[1])
 
         # Initial speed and angle values will be set to safe value
-        speed, angle = constants.SAFE_SPEED, self.last_angle
+        speed, angle = constants.SAFE_SPEED, 0
 
         # Gets info about the current color contour and the next color contour in the color queue
-        current_contour, current_contour_center, current_contour_area = camera_utils.find_contour(
+        current_contour, current_contour_center, current_contour_area = sensor_utils.find_contour(
             self.color_queue[self.color_queue_index][0], 
             cropped_image, 
             constants.LF_MIN_CONTOUR_AREA
         )
-        next_contour, next_contour_center, next_contour_area = camera_utils.find_contour(
+        next_contour, next_contour_center, next_contour_area = sensor_utils.find_contour(
             self.color_queue[self.color_queue_index][1], 
             cropped_image, 
             constants.LF_MIN_CONTOUR_AREA
@@ -68,17 +68,19 @@ class line_follow:
 
         # Changes to the next color pair in the color queue, since the second color has been found
         if self.color_queue_timer <= 0 and next_contour_area > 750:
-            print("next found")
+            print("next color found")
             # The color_queue_index index is incremented so that we can look for the next color pair
             self.color_queue_index += 1
             # The timer is set 1, cooldown timer so that the camera doesnt immediatley switch colors
-            self.color_queue_timer = 1
+            self.color_queue_timer = 2
             # The current values are set to the next values since the car is on the next color
             current_contour, current_contour_center, current_contour_area = next_contour, next_contour_center, next_contour_area
 
         # Returns the safe values if the current contour is none
         if(current_contour_center is None):
-            return speed, self.last_angle
+            angle = self.get_controller_output(self.last_contour_center[1])
+            print("not seen - angle: ", angle)
+            return speed, angle
 
         # The angle is returned based off of the x value of the current contour center
         angle = self.get_controller_output(current_contour_center[1])
@@ -86,22 +88,20 @@ class line_follow:
         # Decrements the self.color_queue_timer by the delta time so that we know when 1 second has passed
         if self.color_queue_timer > 0:
             self.color_queue_timer -= self.rc.get_delta_time()
-            
-        # Cropped image that returns the line much further in front of the race car
-        faster_crop = rc_utils.crop(image, constants.LF_STRAIGHT_IMG_CROP[0], constants.LF_STRAIGHT_IMG_CROP[1])
-
-        # Checks if car is on long straight-away, and returns faster speed
-        long_contour, long_contour_center, long_contour_area = camera_utils.find_contour(
-            self.color_queue[self.color_queue_index][0], 
-            faster_crop, 
-            constants.LF_MIN_FAST_AREA
-        )
-
-        if long_contour is not None:
-            return constants.LF_STRAIGHT_SPEED, angle
         
+        if(self.last_contour_center is not None):
+            if(abs(self.last_contour_center[1] - current_contour_center[1]) >= 10):
+                # angle = self.get_controller_output(self.last_contour_center[1])
+                angle = math_utils.clamp(self.last_contour_center[1] * 10, -1, 1)
+                self.last_contour_center = current_contour_center
+                print("slowed down - angle: ", angle)
+                return constants.LF_TURN_SPEED, angle
+
+        # rc_utils.draw_contour(cropped_image, current_contour)
+        # self.rc.display.show_color_image(cropped_image)
         # The speed is a constant set in the constants file, and the angle is returned from the controller
-        self.last_angle = angle
+        self.last_contour_center = current_contour_center
+        print("fast - angle: ", angle)
         return constants.LF_SPEED, angle
 
     """

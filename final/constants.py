@@ -4,7 +4,7 @@ between the sim and real life with just changing 1 value. Ensure that this is
 set to the right value before testing, and also ensure that every simulation
 value has a real value, and every real value has a simulation value
 """
-REAL = False
+REAL = True
 
 """
 Generic System Constants
@@ -35,11 +35,11 @@ if(REAL):
     """
     The default line following speed
     """
-    LF_SPEED = 0.13
+    LF_SPEED = 0.15
     """
     Line following speed used when a long straight has been seen
     """
-    LF_STRAIGHT_SPEED = 0.16
+    LF_TURN_SPEED = 0.11
     """
     The minimum area for a straight to be recognized should be bigger than the minimum
     area for a normal line to be recognized
@@ -60,18 +60,13 @@ if(not REAL):
     """
     LF_IMG_CROP = ((300, 0), (480, 640))
     """
-    The image crop for looking ahead of the racecar. This allows us to speed up and slow down
-    based on if the current color is seen
-    """
-    LF_STRAIGHT_IMG_CROP = (((480 // 2), (640 // 2) - 50), ((480 // 2) + 100, (640 // 2) + 50))
-    """
     The default line following speed
     """
     LF_SPEED = 0.5
     """
     Line following speed used when a long straight has been seen
     """
-    LF_STRAIGHT_SPEED = 0.5
+    LF_TURN_SPEED = 0.11
     """
     The minimum area for a straight to be recognized should be bigger than the minimum
     area for a normal line to be recognized
@@ -85,6 +80,30 @@ if(not REAL):
     Proportional gain for the P controller for use with line following
     """
     LF_kP = 4.5
+#endregion
+
+"""
+Wall Following Constants
+"""
+#region
+if(REAL):
+    WF_SPEED_SLOW = 0.13
+    WF_SPEED_FAST = 0.155
+    WF_SIDE_THRESHOLD = 250
+    WF_FRONT_THRESHOLD = 70
+
+    """
+    Front Distance, Right Distance, Right Forward Distance, Left Distance, Left Forward Distaance
+    """
+    WF_WINDOWS = [
+        (-20, 20),
+        (85, 95),
+        (30, 40),
+        (265, 275),
+        (-40, -30)
+    ]
+
+    WF_kP = 0.45
 #endregion
 
 """
@@ -129,6 +148,8 @@ if(not REAL):
     GREEN_LINE = ((50, 100, 100), (80, 255, 255))
     ORANGE_LINE = ((0,254,254), (1,255,255))
     YELLOW_LINE = ((16, 54, 18), (32, 211, 255))
+    # Borders
+    RED_BORDER = ((170, 50, 50), (10, 255, 255))
 
 HSV_NOTHING = ((0,0,0), (0,0,0))
 HSV_EVERYTHING = ((0, 0, 0), (179, 255, 255))

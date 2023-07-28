@@ -3,7 +3,7 @@ from typing import List, Tuple
 from nptyping import NDArray
 
 sys.path.insert(0, "../../../library")
-import racecar_utils as rc_utils
+import racecar_core, racecar_utils as rc_utils
 
 """
 Returns the largest contour in the given image, that matches the given color range.
@@ -33,3 +33,14 @@ def find_contour(
 
     # Returns the largest contour center and area
     return contour, contour_center, contour_area
+
+"""
+Returns the output in the order of the input of windows
+"""
+def get_lidar_distances(scan, windows: List[Tuple(int, int)]):
+    output = []
+    for window in windows:
+        __, dist = rc_utils.get_lidar_closest_point(scan, window)
+        output.append(dist)
+
+    return output
