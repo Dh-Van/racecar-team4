@@ -12,13 +12,8 @@ import racecar_core
 import racecar_utils as rc_utils
 
 # global variables
-global rc, color_queue_timer, color_queue_index, integral_sum, PID_timer, last_error
+global rc, color_queue_timer, color_queue_index
 
-
-#PID globals
-integral_sum = 0.0
-PID_timer = 0.0
-last_error = 0.0
 rc = racecar_core.create_racecar()
 
 # HSV Values
@@ -27,10 +22,6 @@ RED = ((170,100,100), (10,255,255))
 GREEN = ((50,50,50), (80,255,255))
 ORANGE = ((0,254,254), (1,255,255))
 PURPLE = ((140, 50, 50), (160, 255, 255))
-YELLOW = ((50, 50, 50), (70, 255, 255))
-
-WIDTH = 640
-HEIGHT = 480
 
 # color_queue:   holds tuples of the current color, + next,
 #                will be incremented when next is found
@@ -39,8 +30,8 @@ color_queue_index = 0
 color_queue_timer = 0
 
 MIN_CONTOUR_AREA = 30
-LINE_FOLLOW_IMG_CROP = ((360,0), (WIDTH, HEIGHT))
-CONE_CROP = ((0,0), (WIDTH, HEIGHT))
+LINE_FOLLOW_IMG_CROP = ((360,0), (480, 640))
+CONE_STOP_IMG_CROP = ((0,0), (480, 640))
 
 
 DEFAULT_SAFE_SPEED = 0.15
@@ -62,24 +53,23 @@ def start():
 
 def update():
     speed, angle = 0, 0
-    global PID_timer
-    PID_timer += rc.get_delta_time()
+
     # State Machine
     if(curr_state == State.line_follow):
         speed, angle = line_follow()
         if color_queue_index == len(color_queue) - 1:
             curr_state = State.line_follow_final
-        if check_cone_contour(): 
-            curr_state = State.cone_follow
+        if check_depth_color(): 
+            curr_state = State.line_follow_cone
     elif(curr_state == State.line_follow_final):
-        _, speed, angle = final_follow(color_queue[len(color_queue)-1][1], LINE_FOLLOW_IMG_CROP)
-        if check_cone_contour():
-            curr_state = State.cone_follow
-    elif(curr_state == State.cone_follow):
-        center, speed, angle = final_follow(PURPLE, CONE_CROP)
-        if search_for_depth(switch_between_color_depth(center)):
-            curr_state = State.cone_park
-    elif(curr_state == State.cone_park):
+        speed, angle = line_follow()
+        if check_depth_color():
+            curr_state = State.line_follow_cone
+    elif(curr_state == State.line_follow_cone):
+        center, speed, angle = coneFollow()
+        if searchForDepth(switchBetweenColorDepth(center)):
+            curr_state = State.stop
+    elif(curr_state == State.stop):
         speed, angle = 0, 0
     else:
         speed, angle = 0, 0
@@ -96,8 +86,8 @@ def line_follow():
     speed, angle = DEFAULT_SAFE_SPEED, 0
 
     # Gets info about the current color contour and the next color contour in the color queue
-    current_contour_center, current_contour_area = find_contours(color_queue[color_queue_index][0], LINE_FOLLOW_IMG_CROP)
-    next_contour_center, next_contour_area = find_contours(color_queue[color_queue_index][1], LINE_FOLLOW_IMG_CROP)
+    current_contour_center, current_contour_area = findContoursLine(color_queue[color_queue_index][0], LINE_FOLLOW_IMG_CROP)
+    next_contour_center, next_contour_area = findContoursLine(color_queue[color_queue_index][1], LINE_FOLLOW_IMG_CROP)
 
     # Returns the safe values when the current contour is none
     if(current_contour_center is None):
@@ -128,21 +118,7 @@ Function to get information about a contour based off a color
 Requires a color (hsv tuple list), and a crop rectangle (list of x, y pairs)
 Returns the largest contour center and area
 '''
-
-def final_follow(COLOR,CROP):
-
-    speed, angle = DEFAULT_SAFE_SPEED, 0
-
-    contour_center, contour_area = find_contours(COLOR, CROP)
-
-    if (contour_center is None):
-        return speed, angle
-
-    angle = get_controller_output(contour_center)
-
-    return contour_center, LINE_FOLLOWING_SPEED, angle
-
-def find_contours(color, crop):
+def findContoursLine(color, crop):
     image = rc.camera.get_color_image()
     
     # When the image is not found: None, None is returned
@@ -180,20 +156,8 @@ takes in desired contour center x-value (in pixels),
 and outputs new turn angle to correct error
 '''
 def get_controller_output(center):
-    global integral_sum, last_error, PID_timer
-    kP = 0.001
-    kI = 0.00001
-    kD = 0.000001
-    #range center =  0 - 320
-    #   error = -160 - +160
-    #   output_rc = -1 - 1
-    error = center - (WIDTH / 2)
-    integral_sum += PID_timer * error
-    slope = error - last_error / PID_timer    
-    output_px = (kP * (error) + (kI * integral_sum) + (kD * slope))
-    output_rc = output_px / (WIDTH / 2)
-    last_error, PID_timer = error, 0
-    return clamp(output_px, -1, 1)
+    kP = 7
+    return clamp(kP * (((center * (2 / 680))) - 1), -1, 1)
 
 def clamp(num, min_value, max_value):
    return max(min(num, max_value), min_value)
@@ -205,35 +169,30 @@ def show_image(image: NDArray) -> None:
     """
     img = rc.camera.get_color_image()
     plt.show(img)
-
-
-def switch_between_color_depth(center):
+def switchBetweenColorDepth(center):
     newCoords = (int(center[0]/2), int(center[1]/2))
     return newCoords
-    # 320,240
-    # 160,120
+    #320,240
+    #160,120
 
-
-def search_for_depth(center):
-    # creates the depth image
+def searchForDepth(center):
+    #creates the depth image
     depth_image = rc.camera.get_depth_image()
 
-    # gets the distance of the center pixel within the depth image (we will assume it is off a cone)
+    #gets the distance of the center pixel within the depth image (we will assume it is off a cone)
     center_distance = depth_image[center[0]][center[1]]
 
-    # checks if the center distance is under 30
+    #checks if the center distance is under 30
     if center_distance < 4:
         return True
     else:
         return False
-
+    
     '''
     Gets the distance of the center pixel, and if it is under an x amount of cm then it is set to true
     '''
-
-
-def check_cone_contour():
-    center, area = find_contours(YELLOW, CONE_CROP)
+def check_depth_color():
+    center, area = findContoursLine(PURPLE, CONE_STOP_IMG_CROP)
 
     if area is not None and area > 3000:
         return True
