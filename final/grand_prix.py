@@ -16,6 +16,7 @@ from line_following import line_follow
 from wall_follwing import wall_follow
 from states import States
 from ar_markers import ar_scan
+from avoidance import avoid
 import constants
 import racecar_core
 import racecar_utils as rc_utils
@@ -37,6 +38,7 @@ global ar_id
 line_follower = line_follow(rc, color_queue)
 wall_follower = wall_follow(rc)
 ar_scanner = ar_scan(rc)
+avoider = avoid(rc)
 ar_id = 0
 
 """
@@ -48,7 +50,7 @@ def start():
     # Have the car begin at a stop
     rc.drive.stop()
 
-    current_state = States.Wall_Follow
+    current_state = States.Avoid
 
     # Feature Initialization
     line_follower.start()
@@ -69,6 +71,8 @@ def update():
         current_state = line_follower.update()
     if(current_state == States.Wall_Follow):
         current_state = wall_follower.update()
+    if(current_state == States.Avoid):
+        current_state = avoider.update()
     
 def update_slow():
 #     global current_state
