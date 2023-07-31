@@ -11,7 +11,7 @@ Generic System Constants
 """
 #region
 if(REAL):
-    SAFE_SPEED = 0.15
+    SAFE_SPEED = 0.1
 
 if(not REAL):
     SAFE_SPEED = 0.25
@@ -98,6 +98,16 @@ if(REAL):
 #endregion
 
 """
+Lane Following Constants
+"""
+if(REAL):
+    LAF_LEFT_IMG_CROP = ((100, 50), (240, 160))
+    LAF_RIGHT_IMG_CROP = ((100, 160), (240, 270))
+if(not REAL):
+    LAF_LEFT_IMG_CROP = ((200, 0), (480, 320))
+    LAF_RIGHT_IMG_CROP = ((200, 320), (480, 640))
+
+"""
 Camera Constants
 """
 #region
@@ -139,6 +149,7 @@ if(not REAL):
     GREEN_LINE = ((50, 100, 100), (80, 255, 255))
     ORANGE_LINE = ((0,254,254), (1,255,255))
     YELLOW_LINE = ((16, 54, 18), (32, 211, 255))
+    PURPLE_LINE = ((90, 50, 50), (170, 255, 255))
     # Borders
     RED_BORDER = ((170, 50, 50), (10, 255, 255))
 
