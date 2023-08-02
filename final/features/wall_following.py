@@ -11,6 +11,7 @@ class wall_follow:
     pid_timer, last_error = 0.001, 0
     rc = None
     wall_distance = 100
+    turn_dist = 100
 
     def __init__(self, racecar: racecar_core.Racecar) -> None:
         self.rc = racecar
@@ -48,6 +49,7 @@ class wall_follow:
 
         right_dist = (distances[1] + distances[2]) / 2
         left_dist = (distances[3] + distances[4]) / 2
+        front_dist = distances[0]
         if(right_dist > 9000): right_dist = 20
         if(left_dist > 9000): left_dist = 20
         if(which_wall):
@@ -59,6 +61,11 @@ class wall_follow:
         print(error)
         print(speed, angle)
         angle = self.get_controller_output(error)
+        if (front_dist < self.turn_dist):
+            if (which_wall):
+                angle = -25 / front_dist
+            else:
+                angle = 25 / front_dist
         return speed, angle
     
     def get_controller_output(self, error):

@@ -4,7 +4,7 @@ between the sim and real life with just changing 1 value. Ensure that this is
 set to the right value before testing, and also ensure that every simulation
 value has a real value, and every real value has a simulation value
 """
-REAL = True
+REAL = False
 
 """
 Generic System Constants
@@ -74,6 +74,20 @@ if(not REAL):
 #endregion
 
 """
+Cone Slaloming Constants
+"""
+
+CS_APPROACH_CROP = ((80, 0),(240, 320))
+CS_SEARCH_CROP = ((80, 0), (240, 320))
+CS_FAST_SPEED = 0.16
+CS_SLOW_SPEED = 0.13
+CS_AVOID_ANGLE = 1
+CS_TURNBACK_ANGLE = -1
+CS_FORWARD_WINDOW = (700,20)
+CS_LEFT_WINDOW = (520,560)
+CS_RIGHT_WINDOW = (160, 200)
+
+"""
 Wall Following Constants
 """
 #region
@@ -98,16 +112,6 @@ if(REAL):
 #endregion
 
 """
-Lane Following Constants
-"""
-if(REAL):
-    LAF_LEFT_IMG_CROP = ((100, 50), (240, 160))
-    LAF_RIGHT_IMG_CROP = ((100, 160), (240, 270))
-if(not REAL):
-    LAF_LEFT_IMG_CROP = ((200, 0), (480, 320))
-    LAF_RIGHT_IMG_CROP = ((200, 320), (480, 640))
-
-"""
 Camera Constants
 """
 #region
@@ -117,6 +121,7 @@ if(REAL):
     """
     WIDTH = 320
     HEIGHT = 240
+    MIN_CONE_AREA = 30
 
 if(not REAL):
     """
@@ -132,8 +137,8 @@ HSV Constants
 # region
 if(REAL):
     # Cones
-    RED_CONE = ((175, 100, 100), (19, 255, 255))
-    BLUE_CONE = ((131, 55, 17), (169, 188, 255))
+    PURPLE_CONE = ((85, 100, 17), (115, 188, 255))
+    ORANGE_CONE = ((165, 100, 100), (19, 255, 255))
     # Lines
     BLUE_LINE = ((90,70,70), (110,255,255))
     RED_LINE = ((170,100,100), (10,255,255))
@@ -143,13 +148,16 @@ if(REAL):
 
 if(not REAL):
     # Cones
+    RED_CONE = ((170, 50, 50), (10, 255, 255))
+    BLUE_CONE = ((80, 100, 100), (130, 255, 255))
     # Lines
     BLUE_LINE = ((90, 100, 100), (110, 255, 255))
     RED_LINE = ((170, 200, 200), (10, 255, 255))
     GREEN_LINE = ((50, 100, 100), (80, 255, 255))
     ORANGE_LINE = ((0,254,254), (1,255,255))
     YELLOW_LINE = ((16, 54, 18), (32, 211, 255))
-    PURPLE_LINE = ((90, 50, 50), (170, 255, 255))
+    PURPLE_LINE = ((110, 17, 128), (140, 255, 255))
+
     # Borders
     RED_BORDER = ((170, 50, 50), (10, 255, 255))
 
