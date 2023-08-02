@@ -11,7 +11,7 @@ Generic System Constants
 """
 #region
 if(REAL):
-    SAFE_SPEED = 0.15
+    SAFE_SPEED = 0.12
 
 if(not REAL):
     SAFE_SPEED = 0.25
@@ -73,28 +73,44 @@ if(not REAL):
     LF_kP = 4.5
 #endregion
 
+LAF_CROP = ((150, 0), (240, 160))
+
+"""
+Cone Slaloming Constants
+"""
+
+CS_APPROACH_CROP = ((80, 0),(240, 320))
+CS_SEARCH_CROP = ((80, 0), (240, 320))
+CS_FAST_SPEED = 0.16
+CS_SLOW_SPEED = 0.13
+CS_AVOID_ANGLE = 0.15
+CS_TURNBACK_ANGLE = -0.25
+CS_FORWARD_WINDOW = (345,15)
+CS_LEFT_WINDOW = (260,280)
+CS_RIGHT_WINDOW = (80, 100)
+
 """
 Wall Following Constants
 """
 #region
 if(REAL):
-    WF_SPEED_SLOW = 0.15
-    WF_SPEED_FAST = 0.175
+    WF_SPEED_SLOW = 0.125
+    WF_SPEED_FAST = 0.16
     WF_SIDE_THRESHOLD = 250
-    WF_FRONT_THRESHOLD = 70
+    WF_FRONT_THRESHOLD = 100
 
     """
     Front Distance, Right Distance, Right Forward Distance, Left Distance, Left Forward Distaance
     """
     WF_WINDOWS = [
-        (-20, 20),
+        (350, 10),
         (85, 95),
         (30, 40),
         (265, 275),
         (-40, -30)
     ]
 
-    WF_kP = 0.5
+    WF_kP = 0.4
 #endregion
 
 """
@@ -107,6 +123,7 @@ if(REAL):
     """
     WIDTH = 320
     HEIGHT = 240
+    MIN_CONE_AREA = 30
 
 if(not REAL):
     """
@@ -122,8 +139,10 @@ HSV Constants
 # region
 if(REAL):
     # Cones
-    RED_CONE = ((175, 100, 100), (19, 255, 255))
-    BLUE_CONE = ((131, 55, 17), (169, 188, 255))
+    PURPLE_CONE = ((125, 50, 50), (155, 255, 255))
+    ORANGE_CONE = ((2, 135, 100), (25, 255, 255))
+    
+    
     # Lines
     BLUE_LINE = ((90,70,70), (110,255,255))
     RED_LINE = ((170,100,100), (10,255,255))
@@ -133,12 +152,16 @@ if(REAL):
 
 if(not REAL):
     # Cones
+    RED_CONE = ((170, 50, 50), (10, 255, 255))
+    BLUE_CONE = ((80, 100, 100), (130, 255, 255))
     # Lines
     BLUE_LINE = ((90, 100, 100), (110, 255, 255))
     RED_LINE = ((170, 200, 200), (10, 255, 255))
     GREEN_LINE = ((50, 100, 100), (80, 255, 255))
     ORANGE_LINE = ((0,254,254), (1,255,255))
     YELLOW_LINE = ((16, 54, 18), (32, 211, 255))
+    PURPLE_LINE = ((110, 17, 128), (140, 255, 255))
+
     # Borders
     RED_BORDER = ((170, 50, 50), (10, 255, 255))
 

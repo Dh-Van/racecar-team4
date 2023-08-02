@@ -4,14 +4,14 @@ between the sim and real life with just changing 1 value. Ensure that this is
 set to the right value before testing, and also ensure that every simulation
 value has a real value, and every real value has a simulation value
 """
-REAL = False
+REAL = True
 
 """
 Generic System Constants
 """
 #region
 if(REAL):
-    SAFE_SPEED = 0.1
+    SAFE_SPEED = 0.12
 
 if(not REAL):
     SAFE_SPEED = 0.25
@@ -73,6 +73,8 @@ if(not REAL):
     LF_kP = 4.5
 #endregion
 
+LAF_CROP = ((150, 0), (240, 160))
+
 """
 Cone Slaloming Constants
 """
@@ -81,34 +83,34 @@ CS_APPROACH_CROP = ((80, 0),(240, 320))
 CS_SEARCH_CROP = ((80, 0), (240, 320))
 CS_FAST_SPEED = 0.16
 CS_SLOW_SPEED = 0.13
-CS_AVOID_ANGLE = 1
-CS_TURNBACK_ANGLE = -1
-CS_FORWARD_WINDOW = (700,20)
-CS_LEFT_WINDOW = (520,560)
-CS_RIGHT_WINDOW = (160, 200)
+CS_AVOID_ANGLE = 0.15
+CS_TURNBACK_ANGLE = -0.25
+CS_FORWARD_WINDOW = (345,15)
+CS_LEFT_WINDOW = (260,280)
+CS_RIGHT_WINDOW = (80, 100)
 
 """
 Wall Following Constants
 """
 #region
 if(REAL):
-    WF_SPEED_SLOW = 0.15
-    WF_SPEED_FAST = 0.175
+    WF_SPEED_SLOW = 0.125
+    WF_SPEED_FAST = 0.16
     WF_SIDE_THRESHOLD = 250
-    WF_FRONT_THRESHOLD = 70
+    WF_FRONT_THRESHOLD = 100
 
     """
     Front Distance, Right Distance, Right Forward Distance, Left Distance, Left Forward Distaance
     """
     WF_WINDOWS = [
-        (-20, 20),
+        (350, 10),
         (85, 95),
         (30, 40),
         (265, 275),
         (-40, -30)
     ]
 
-    WF_kP = 0.5
+    WF_kP = 0.4
 #endregion
 
 """
@@ -137,8 +139,10 @@ HSV Constants
 # region
 if(REAL):
     # Cones
-    PURPLE_CONE = ((85, 100, 17), (115, 188, 255))
-    ORANGE_CONE = ((165, 100, 100), (19, 255, 255))
+    PURPLE_CONE = ((125, 50, 50), (155, 255, 255))
+    ORANGE_CONE = ((2, 135, 100), (25, 255, 255))
+    
+    
     # Lines
     BLUE_LINE = ((90,70,70), (110,255,255))
     RED_LINE = ((170,100,100), (10,255,255))

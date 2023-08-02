@@ -13,6 +13,7 @@ sys.path.insert(2, "utils")
 
 
 from line_following import line_follow
+from lane_following import lane_follow
 from wall_following import wall_follow
 from states import States
 from ar_markers import ar_scan
@@ -36,6 +37,7 @@ current_state, last_state = States.Stop, States.Stop
 rc = racecar_core.create_racecar()
 global ar_id, angle
 line_follower = line_follow(rc, color_queue)
+lane_follower = lane_follow(rc)
 wall_follower = wall_follow(rc)
 # ar_scanner = ar_scan(rc)
 cone_slalomer = cone_slalom(rc)
@@ -54,6 +56,7 @@ def start():
 
     # Feature Initialization
     line_follower.start()
+    lane_follower.start()
     wall_follower.start()
     cone_slalomer.start()
 
@@ -74,6 +77,8 @@ def update():
         current_state = wall_follower.update()
     if(current_state == States.Cone_Slalom):
         current_state = cone_slalomer.update()
+    if(current_state == States.Lane_Follow):
+        current_state = lane_follower.update()
     
 def update_slow():
     # global current_state
